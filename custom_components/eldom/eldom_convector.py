@@ -13,6 +13,8 @@ from ioteldom.models import (
 
 from homeassistant.components.climate import HVACMode
 
+from .convector_control import async_set_temperature_preserving_params
+
 ELDOM_OPERATION_MODES = {0: HVACMode.OFF, 1: HVACMode.HEAT}
 IOT_ELDOM_OPERATION_MODES = {"0": HVACMode.OFF, "16": HVACMode.HEAT}
 # The ELDOM app (HTRCNV checkDeviceStatuses) splits Operation into a
@@ -282,8 +284,7 @@ class IoTEldomConvectorHeater:
 
     async def set_temperature(self, temperature: float) -> None:
         """Set the temperature of the heater."""
-        async with self._operation_lock:
-            await self._iot_eldom_client.convector_heater.set_convector_heater_temperature(
-                self._convector_heater_device, int(temperature)
-            )
-            self._convector_heater_details.TSet = str(int(temperature) * 10)
+        async with self._operation_lock, asyncio.timeout(30):
+            confirmed = await async_set_temperature_preserving_params(
+                self._iot_eldom_client, self._convector_heater_device, int(temperature))
+            self._convector_heater_details.TSet = confirmed

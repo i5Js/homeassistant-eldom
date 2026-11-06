@@ -86,6 +86,38 @@
       "estimate_reference_power": {
         "name": "Energy estimate reference power"
       }
+    },
+    "switch": {
+      "child_lock": {
+        "name": "Child lock"
+      },
+      "antifreeze": {
+        "name": "Antifreeze protection"
+      },
+      "power_regulation": {
+        "name": "Power regulation"
+      },
+      "adaptive_display": {
+        "name": "Automatic display dimming"
+      },
+      "sleep": {
+        "name": "Sleep mode"
+      }
+    },
+    "number": {
+      "display_brightness": {
+        "name": "Display brightness"
+      }
+    },
+    "select": {
+      "open_window_mode": {
+        "name": "Window detection",
+        "state": {
+          "off": "Off",
+          "on": "On",
+          "smart": "Smart"
+        }
+      }
     }
   }
 }

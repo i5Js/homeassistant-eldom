@@ -10,6 +10,7 @@ from ioteldom.client import InvalidCredentialsError as IoTInvalidCredentialsErro
 
 from .const import IOT_ELDOM_API
 from .eldom_client import EldomClientWrapper
+from .convector_control import ControlNotAllowed, async_set_control, validate_value
 
 FETCH_TIMEOUT = 25
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=15, connect=5)
@@ -100,6 +101,26 @@ class EldomConnection:
                 await self._async_reset()
                 raise
         raise RuntimeError("Eldom read did not complete")
+
+    async def async_set_convector_control(self, device, key, value):
+        """Serialize one confirmed configuration write; never replay writes."""
+        validate_value(key, value)
+        async with self._lock:
+            if self._closed:
+                raise RuntimeError("Eldom connection is closed")
+            try:
+                async with asyncio.timeout(30):
+                    client = await self._async_client()
+                    return await async_set_control(client.iot_eldom_client, device, key, value)
+            except ControlNotAllowed:
+                # A valid mode restriction is not a transport failure. Existing
+                # climate objects may still use this live session until polling.
+                raise
+            except BaseException as error:
+                rejected = isinstance(error, aiohttp.ClientResponseError) and error.status in (401, 403)
+                rejected = rejected or isinstance(error, (EldomInvalidCredentialsError, IoTInvalidCredentialsError))
+                await self._async_reset(reset_auth=rejected)
+                raise
 
     async def async_close(self) -> None:
         """Prevent new reads and close the entry-owned transport on unload."""

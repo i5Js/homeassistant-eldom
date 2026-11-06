@@ -129,6 +129,11 @@ Devices managed via the `Eldom` app (or the `iot.myeldom.com` website) — see t
 See [IoT convector configuration readings](docs/iot-convector-features.md) for
 the 18 new entities, diagnostics disabled by default and read-only limitations.
 
+Seven additional [configuration controls](docs/iot-convector-controls.md) cover
+child lock, antifreeze, sleep, power regulation, display dimming, brightness and
+window detection. Writes require an independent readback and are never
+automatically retried. Sleep requires Manual mode; saved programmes are retained.
+
 The hourly values reproduce the official app's calculation; they are not an
 independent electricity-meter measurement or instantaneous watts. Missing data
 remains unavailable. See [IoT convector telemetry](docs/iot-convector-telemetry.md)

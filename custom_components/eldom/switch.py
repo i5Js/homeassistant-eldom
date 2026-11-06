@@ -2,7 +2,8 @@
 
 from typing import Any
 
-from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity, SwitchEntityDescription
+from homeassistant.const import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -14,12 +15,25 @@ from .const import (
     DEVICE_TYPE_NATURELA_BOILER_ELDOM,
     DEVICE_TYPE_SMART_BOILER_ELDOM,
     DOMAIN,
+    DEVICE_TYPE_CONVECTOR_HEATER_IOT_ELDOM,
 )
+from .control_entity import EldomConvectorControlEntity
 from .coordinator import EldomCoordinator
 from .eldom_boiler import EldomBoiler
 from .models import EldomData
 
 SWITCH_NAME = "Powerful"
+
+CONTROL_SWITCHES = tuple(SwitchEntityDescription(
+    key=key, translation_key=key, name=name, icon=icon,
+    entity_category=EntityCategory.CONFIG,
+) for key, name, icon in (
+    ("child_lock", "Child lock", "mdi:lock"),
+    ("antifreeze", "Antifreeze protection", "mdi:snowflake"),
+    ("power_regulation", "Power regulation", "mdi:tune"),
+    ("adaptive_display", "Automatic display dimming", "mdi:brightness-auto"),
+    ("sleep", "Sleep mode", "mdi:power-sleep"),
+))
 
 
 async def async_setup_entry(
@@ -30,6 +44,14 @@ async def async_setup_entry(
     """Set up Eldom switch platform."""
 
     eldom_data: EldomData = hass.data[DOMAIN][config_entry.entry_id]
+
+    if eldom_data.energy_coordinator is not None:
+        async_add_entities([
+            EldomConvectorConfigSwitch(heater, eldom_data.energy_coordinator,
+                eldom_data.coordinator.eldom_wrapper_client, description)
+            for heater in eldom_data.coordinator.data.get(DEVICE_TYPE_CONVECTOR_HEATER_IOT_ELDOM, {}).values()
+            for description in CONTROL_SWITCHES
+        ])
 
     async_add_entities(
         EldomBoilerPowerfulModeSwitch(flat_boiler, eldom_data.coordinator)
@@ -51,6 +73,18 @@ async def async_setup_entry(
             DEVICE_TYPE_NATURELA_BOILER_ELDOM, []
         ).values()
     )
+
+
+class EldomConvectorConfigSwitch(EldomConvectorControlEntity, SwitchEntity):
+    @property
+    def is_on(self):
+        return self.feature_value
+
+    async def async_turn_on(self, **kwargs):
+        await self.async_set_control_value(True)
+
+    async def async_turn_off(self, **kwargs):
+        await self.async_set_control_value(False)
 
 
 class EldomBoilerPowerfulModeSwitch(SwitchEntity, CoordinatorEntity):

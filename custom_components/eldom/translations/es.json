@@ -66,6 +66,38 @@
       "estimate_reference_power": {
         "name": "Potencia de referencia del consumo estimado"
       }
+    },
+    "switch": {
+      "child_lock": {
+        "name": "Bloqueo infantil"
+      },
+      "antifreeze": {
+        "name": "Protección antihielo"
+      },
+      "power_regulation": {
+        "name": "Regulación de potencia"
+      },
+      "adaptive_display": {
+        "name": "Atenuación automática de pantalla"
+      },
+      "sleep": {
+        "name": "Modo sueño"
+      }
+    },
+    "number": {
+      "display_brightness": {
+        "name": "Brillo de pantalla"
+      }
+    },
+    "select": {
+      "open_window_mode": {
+        "name": "Detección de ventana",
+        "state": {
+          "off": "Apagado",
+          "on": "Encendido",
+          "smart": "Inteligente"
+        }
+      }
     }
   }
 }
