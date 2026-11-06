@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from .coordinator import EldomCoordinator
 from .energy import EldomEnergyCoordinator
+from .weekly_manager import WeeklyProgramManager
 
 
 @dataclass
@@ -12,3 +13,4 @@ class EldomData:
 
     coordinator: EldomCoordinator
     energy_coordinator: EldomEnergyCoordinator | None = None
+    weekly_manager: WeeklyProgramManager | None = None

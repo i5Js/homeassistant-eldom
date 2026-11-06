@@ -119,5 +119,58 @@
                 }
             }
         }
+    },
+    "services": {
+        "get_weekly_schedule": {
+            "name": "Get weekly schedule",
+            "description": "Read all seven intervals, the current mode and the activations remembered when pausing."
+        },
+        "activate_weekly_program": {
+            "name": "Activate weekly programme",
+            "description": "Activate the current or remembered intervals, or explicitly choose which ones to enable.",
+            "fields": {
+                "enabled_intervals": {
+                    "name": "Intervals to enable",
+                    "description": "Optional. Omit to reuse the current or remembered activations."
+                }
+            }
+        },
+        "set_weekly_interval": {
+            "name": "Edit weekly interval",
+            "description": "Change only the supplied fields and preserve the other six intervals. Enabling an interval starts the programme if the radiator is on.",
+            "fields": {
+                "slot": {
+                    "name": "Interval (1–7)"
+                },
+                "enabled": {
+                    "name": "Enabled"
+                },
+                "weekdays": {
+                    "name": "Weekdays"
+                },
+                "start": {
+                    "name": "Start time"
+                },
+                "end": {
+                    "name": "End time"
+                },
+                "temperature": {
+                    "name": "Temperature"
+                }
+            }
+        }
+    },
+    "selector": {
+        "weekdays": {
+            "options": {
+                "sunday": "Sunday",
+                "monday": "Monday",
+                "tuesday": "Tuesday",
+                "wednesday": "Wednesday",
+                "thursday": "Thursday",
+                "friday": "Friday",
+                "saturday": "Saturday"
+            }
+        }
     }
 }

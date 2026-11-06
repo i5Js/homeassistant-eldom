@@ -1,0 +1,61 @@
+get_weekly_schedule:
+  target:
+    entity:
+      integration: eldom
+      domain: climate
+
+activate_weekly_program:
+  target:
+    entity:
+      integration: eldom
+      domain: climate
+  fields:
+    enabled_intervals:
+      example: [1, 2]
+      selector:
+        select:
+          multiple: true
+          options: ["1", "2", "3", "4", "5", "6", "7"]
+
+set_weekly_interval:
+  target:
+    entity:
+      integration: eldom
+      domain: climate
+  fields:
+    slot:
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 7
+          step: 1
+          mode: box
+    enabled:
+      selector:
+        boolean:
+    weekdays:
+      example: [monday, tuesday, wednesday, thursday, friday]
+      selector:
+        select:
+          multiple: true
+          translation_key: weekdays
+          options: [sunday, monday, tuesday, wednesday, thursday, friday, saturday]
+    start:
+      example: "08:00"
+      selector:
+        time:
+    end:
+      example: "16:00"
+      selector:
+        time:
+    temperature:
+      example: 15.5
+      selector:
+        number:
+          min: 5
+          max: 35
+          step: 0.5
+          unit_of_measurement: "°C"
+          mode: box

@@ -115,7 +115,7 @@ Devices managed via the `Eldom` app (or the `iot.myeldom.com` website) — see t
 - Operational mode selection
   - `Heat`
   - `Off`
-  - `Auto` while an existing weekly programme or timer is active
+  - `Auto` to activate a saved weekly programme (supported IoT convectors)
 - Set target temperature
 - Display current temperature
 
@@ -133,6 +133,10 @@ Seven additional [configuration controls](docs/iot-convector-controls.md) cover
 child lock, antifreeze, sleep, power regulation, display dimming, brightness and
 window detection. Writes require an independent readback and are never
 automatically retried. Sleep requires Manual mode; saved programmes are retained.
+
+Weekly programmes can be activated, paused and edited using native HA actions.
+See [weekly programme control](docs/iot-convector-weekly-program.md) for interval
+editing, remembered activation flags and supported device configuration.
 
 The hourly values reproduce the official app's calculation; they are not an
 independent electricity-meter measurement or instantaneous watts. Missing data

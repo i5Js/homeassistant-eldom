@@ -99,5 +99,58 @@
         }
       }
     }
+  },
+  "services": {
+    "get_weekly_schedule": {
+      "name": "Consultar programa semanal",
+      "description": "Lee los siete intervalos, el modo actual y las activaciones recordadas al pasar a Manual."
+    },
+    "activate_weekly_program": {
+      "name": "Activar programa semanal",
+      "description": "Activa los intervalos actuales o los recordados. Puedes elegir explícitamente cuáles activar.",
+      "fields": {
+        "enabled_intervals": {
+          "name": "Intervalos a activar",
+          "description": "Opcional. Si se omite, reutiliza las activaciones actuales o recordadas."
+        }
+      }
+    },
+    "set_weekly_interval": {
+      "name": "Editar intervalo semanal",
+      "description": "Modifica solo los campos indicados y conserva los otros seis intervalos. Activar un intervalo pone el programa en marcha si el radiador está encendido.",
+      "fields": {
+        "slot": {
+          "name": "Intervalo (1–7)"
+        },
+        "enabled": {
+          "name": "Activado"
+        },
+        "weekdays": {
+          "name": "Días de la semana"
+        },
+        "start": {
+          "name": "Hora de inicio"
+        },
+        "end": {
+          "name": "Hora de fin"
+        },
+        "temperature": {
+          "name": "Temperatura"
+        }
+      }
+    }
+  },
+  "selector": {
+    "weekdays": {
+      "options": {
+        "sunday": "Domingo",
+        "monday": "Lunes",
+        "tuesday": "Martes",
+        "wednesday": "Miércoles",
+        "thursday": "Jueves",
+        "friday": "Viernes",
+        "saturday": "Sábado"
+      }
+    }
   }
 }

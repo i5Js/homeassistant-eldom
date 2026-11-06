@@ -11,6 +11,7 @@ from ioteldom.client import InvalidCredentialsError as IoTInvalidCredentialsErro
 from .const import IOT_ELDOM_API
 from .eldom_client import EldomClientWrapper
 from .convector_control import ControlNotAllowed, async_set_control, validate_value
+from .weekly_program import async_weekly_transaction, validate_request
 
 FETCH_TIMEOUT = 25
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=15, connect=5)
@@ -115,6 +116,26 @@ class EldomConnection:
             except ControlNotAllowed:
                 # A valid mode restriction is not a transport failure. Existing
                 # climate objects may still use this live session until polling.
+                raise
+            except BaseException as error:
+                rejected = isinstance(error, aiohttp.ClientResponseError) and error.status in (401, 403)
+                rejected = rejected or isinstance(error, (EldomInvalidCredentialsError, IoTInvalidCredentialsError))
+                await self._async_reset(reset_auth=rejected)
+                raise
+
+    async def async_weekly_program(self, device, operation, **kwargs):
+        validate_request(operation, kwargs.get("slot"), kwargs.get("changes"), kwargs.get("selected_slots"))
+        async with self._lock:
+            if self._closed:
+                raise RuntimeError("Eldom connection is closed")
+            try:
+                async with asyncio.timeout(45):
+                    provider = kwargs.pop("profile_provider", None)
+                    if provider is not None:
+                        kwargs["profile"] = provider()
+                    client = await self._async_client()
+                    return await async_weekly_transaction(client.iot_eldom_client, device, operation, **kwargs)
+            except ControlNotAllowed:
                 raise
             except BaseException as error:
                 rejected = isinstance(error, aiohttp.ClientResponseError) and error.status in (401, 403)

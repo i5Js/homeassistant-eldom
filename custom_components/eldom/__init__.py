@@ -11,6 +11,7 @@ from .const import CONF_API, DOMAIN, DEVICE_TYPE_CONVECTOR_HEATER_IOT_ELDOM
 from .coordinator import EldomCoordinator
 from .energy import EldomEnergyCoordinator
 from .models import EldomData
+from .weekly_manager import WeeklyProgramManager
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
@@ -40,6 +41,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         devices = [heater._convector_heater_device for heater in coordinator.data.get(DEVICE_TYPE_CONVECTOR_HEATER_IOT_ELDOM, {}).values()]
         if devices:
             eldom_data.energy_coordinator = EldomEnergyCoordinator(hass, entry, devices, client.operation_lock)
+            eldom_data.weekly_manager = WeeklyProgramManager(hass, entry, client, coordinator, eldom_data.energy_coordinator)
         hass.data.setdefault(DOMAIN, {})[entry.entry_id] = eldom_data
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         if eldom_data.energy_coordinator:
