@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 import tempfile
 from types import SimpleNamespace
 import unittest
+import aiohttp
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from unittest.mock import AsyncMock, Mock, patch
 from zoneinfo import ZoneInfo
 
@@ -96,6 +98,12 @@ class SensorTests(unittest.TestCase):
         with patch("custom_components.eldom.sensor.dt_util.now",return_value=NOW+timedelta(days=1)):
             self.assertIsNone(self.sensor.native_value)
 
+    def test_missing_daily_history_is_unavailable_even_with_fresh_configuration(self):
+        self.coordinator.data["test-0128"]["energy"] = []
+        with patch("custom_components.eldom.sensor.dt_util.utcnow",return_value=NOW.astimezone(timezone.utc)):
+            self.assertFalse(self.sensor.available)
+        self.assertIsNone(self.sensor.native_value)
+
     def test_stale_missing_and_failed_reads_are_unavailable(self):
         with patch("custom_components.eldom.sensor.dt_util.utcnow",return_value=NOW.astimezone(timezone.utc)):
             self.assertTrue(self.sensor.available)
@@ -131,7 +139,7 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
                 await self.coordinator._read(client,Mock(),req)
         self.assertEqual(client.mock_calls,[])
 
-    async def test_batch_requests_keep_energy_and_temperature_separate(self):
+    async def test_combined_graph_reads_seven_unique_dates_serially(self):
         now=datetime.now(self.coordinator._zone)
         dates=[int(datetime.combine(now.date()-timedelta(days=i),datetime.min.time(),tzinfo=timezone.utc).timestamp()) for i in range(7)]
         calls=[]
@@ -142,16 +150,19 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
             if req=="GetStatus":return {"TimeZone":"1"}
             if req=="GetParams":return {"SystemSettings":"1, 2, 2, 1"}
             if req=="GetPowerMode":return {"Mode":"1"}
+            if req != "GetGraph":return {"Res":req}
             return {**RAW_ENERGY,"Res":req,"Date":str(dates[n]),"T0":"16"}
         self.coordinator._read=read
         result=await self.coordinator._device_snapshot(Mock(),Mock())
         self.assertEqual(len(result["energy"]),7)
         self.assertEqual(len(result["temperature"]),7)
-        self.assertEqual(calls.count("GetEnergyStatistic"),7)
-        self.assertEqual(calls.count("GetTemperatureStatistic"),7)
+        self.assertEqual(calls.count("GetGraph"),7)
+        self.assertNotIn("GetEnergyStatistic",calls)
+        self.assertNotIn("GetTemperatureStatistic",calls)
+        self.assertEqual(result["history_coverage"]["energy_missing_dates"],[])
         self.assertEqual(result["reference_power_w"],2000)
         self.assertTrue(result["power_regulation"])
-        self.assertEqual(set(calls),energy.READ_REQUESTS)
+        self.assertEqual(set(calls),{"GetStatus","GetParams","GetPowerMode","GetGraph",*energy.FEATURE_REQUESTS})
 
     async def test_failure_message_contains_no_credentials_or_response_body(self):
         with patch("custom_components.eldom.energy.Client") as client:
@@ -161,6 +172,15 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("secret",str(caught.exception))
         self.assertNotIn("response-body",str(caught.exception))
         self.assertIsNone(self.coordinator._running_task)
+
+    async def test_auxiliary_auth_failure_requests_reauthentication_without_private_details(self):
+        errors = [energy.InvalidCredentialsError(), aiohttp.ClientResponseError(None, (), status=401)]
+        for error in errors:
+            with patch("custom_components.eldom.energy.Client") as client:
+                client.return_value.token_provider.provide = AsyncMock(side_effect=error)
+                with self.assertRaises(ConfigEntryAuthFailed) as caught:
+                    await self.coordinator._async_update_data()
+            self.assertEqual(str(caught.exception), "Eldom rejected authentication")
 
     async def test_shutdown_cancels_initial_background_work(self):
         self.coordinator._task=asyncio.create_task(asyncio.Event().wait())

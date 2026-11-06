@@ -232,9 +232,9 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
             async_config_entry_first_refresh=AsyncMock(), async_shutdown=AsyncMock())
         hourly = SimpleNamespace(start=Mock(), async_shutdown=AsyncMock())
         self.hass.config_entries.async_forward_entry_setups = AsyncMock()
-        with patch.object(eldom, "EldomConnection"), patch.object(eldom, "EldomCoordinator", return_value=fake), patch.object(eldom, "EldomEnergyCoordinator", return_value=hourly) as factory:
+        with patch.object(eldom, "EldomConnection") as connection_factory, patch.object(eldom, "EldomCoordinator", return_value=fake), patch.object(eldom, "EldomEnergyCoordinator", return_value=hourly) as factory:
             self.assertTrue(await eldom.async_setup_entry(self.hass, self.entry))
-        factory.assert_called_once_with(self.hass, self.entry, [device])
+        factory.assert_called_once_with(self.hass, self.entry, [device], connection_factory.return_value.operation_lock)
         hourly.start.assert_called_once_with(self.hass, self.entry)
         self.assertIs(self.hass.data["eldom"]["eldom-test"].energy_coordinator, hourly)
 

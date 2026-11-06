@@ -18,5 +18,74 @@
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "child_lock": {
+        "name": "Child lock enabled"
+      },
+      "antifreeze": {
+        "name": "Antifreeze protection enabled"
+      },
+      "sleep": {
+        "name": "Sleep mode enabled"
+      },
+      "power_regulation": {
+        "name": "Power regulation enabled"
+      },
+      "adaptive_display": {
+        "name": "Automatic display dimming enabled"
+      },
+      "wifi_enabled": {
+        "name": "Wi-Fi mode enabled"
+      },
+      "ap_enabled": {
+        "name": "Access point mode enabled"
+      },
+      "automatic_clock": {
+        "name": "Automatic clock synchronization enabled"
+      }
+    },
+    "sensor": {
+      "schedule_enabled_intervals": {
+        "name": "Weekly schedule enabled intervals"
+      },
+      "open_window_mode": {
+        "name": "Open window detection mode",
+        "state": {
+          "off": "Off",
+          "on": "On",
+          "smart": "Smart"
+        }
+      },
+      "display_brightness": {
+        "name": "Display brightness level"
+      },
+      "language": {
+        "name": "Display language"
+      },
+      "firmware_version": {
+        "name": "Firmware version"
+      },
+      "hardware_version": {
+        "name": "Hardware version"
+      },
+      "day_tariff_start": {
+        "name": "Day tariff start"
+      },
+      "night_tariff_start": {
+        "name": "Night tariff start"
+      },
+      "scheduler_type": {
+        "name": "Scheduler configuration",
+        "state": {
+          "timer": "Timer",
+          "weekly_program": "Weekly programme"
+        }
+      },
+      "estimate_reference_power": {
+        "name": "Energy estimate reference power"
+      }
+    }
   }
 }

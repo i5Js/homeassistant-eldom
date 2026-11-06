@@ -15,6 +15,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     DEVICE_TYPE_FLAT_BOILER_ELDOM,
     DEVICE_TYPE_FLAT_BOILER_IOT_ELDOM,
+    DEVICE_TYPE_CONVECTOR_HEATER_IOT_ELDOM,
     DEVICE_TYPE_NATURELA_BOILER_ELDOM,
     DEVICE_TYPE_SMART_BOILER_ELDOM,
     DOMAIN,
@@ -23,6 +24,7 @@ from .coordinator import EldomCoordinator
 from .eldom_boiler import EldomBoiler, FlatEldomBoiler, FlatIoTEldomBoiler
 from .models import EldomData
 from .energy import number
+from .convector_sensor import SENSOR_FEATURES, EldomConvectorFeatureSensor
 from homeassistant.util import dt as dt_util
 
 HEATER_STATE_ON = "On"
@@ -148,8 +150,12 @@ async def async_setup_entry(
         )
 
     if eldom_data.energy_coordinator:
-        for heater in eldom_data.coordinator.data.get("HTRCNV", {}).values():
+        for heater in eldom_data.coordinator.data.get(DEVICE_TYPE_CONVECTOR_HEATER_IOT_ELDOM, {}).values():
             entities_to_add.append(EldomConvectorEstimatedEnergySensor(heater, eldom_data.energy_coordinator))
+            entities_to_add.extend(
+                EldomConvectorFeatureSensor(heater, eldom_data.energy_coordinator, description)
+                for description in SENSOR_FEATURES
+            )
 
     async_add_entities(entities_to_add)
 
@@ -172,12 +178,13 @@ class EldomConvectorEstimatedEnergySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def snapshot(self):
-        return self.coordinator.data.get(self._device_id, {})
+        return (self.coordinator.data or {}).get(self._device_id, {})
 
     @property
     def available(self):
         stamp = dt_util.parse_datetime(self.snapshot.get("retrieved_at", ""))
-        return bool(super().available and stamp and stamp.tzinfo and 0 <= (dt_util.utcnow() - stamp).total_seconds() < 1800)
+        return bool(super().available and stamp and stamp.tzinfo and 0 <= (dt_util.utcnow() - stamp).total_seconds() < 1800
+                    and self.native_value is not None)
 
     @property
     def native_value(self):
@@ -187,7 +194,7 @@ class EldomConvectorEstimatedEnergySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        return {key: value for key, value in self.snapshot.items() if key != "today"}
+        return {key: value for key, value in self.snapshot.items() if key not in {"today", "features"}}
 
 
 class EldomBoilerDayEnergyConsumptionSensor(SensorEntity, CoordinatorEntity):

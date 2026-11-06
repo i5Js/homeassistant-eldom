@@ -23,6 +23,8 @@ Its attributes are:
 | `power_class` | Second component of the device's `SystemSettings` |
 | `reference_power_w` | Power used to interpret the estimate, not instantaneous consumption |
 | `power_regulation` | Read-only regulation status, or null when unsupported |
+| `estimate_factor` | Exact decimal kWh-per-counter factor selected by the app |
+| `history_coverage` | Explicit missing-date lists for energy/temperature and a safe error type |
 | `vendor_timezone` | Timezone value reported by the device |
 
 Dates are calendar labels; hour positions are the manufacturer's 24 bins, not
@@ -37,7 +39,9 @@ past samples into Recorder or create long-term statistics from these estimates.
 
 ## Calculation
 
-`GetEnergyStatistic` returns `Date`, `TotalPower` and `P0` through `P23`.
+`GetGraph` returns both hourly series, `Date` and `TotalPower`.
+`GetEnergyStatistic` remains available as a compatibility fallback, returning
+`Date`, `TotalPower` and `P0` through `P23`.
 The official app multiplies these counters by a factor selected from the second
 comma-separated component of `SystemSettings`:
 
@@ -70,19 +74,30 @@ a 90-second overall limit and 15-second request limits. Initial telemetry runs
 in the background after the platforms load. Climate polling continues on its
 existing 30-second interval and its independent reconnecting transport.
 
-The app requests seven records concurrently. Sequential requests can repeat
-dates when status polling resets the device's read cursor. Graphs are fetched
-in batches of at most seven concurrent requests and deduplicated by date.
-An incomplete batch can expose fewer dates; absent dates are never invented.
+The firmware returns one date per repeated history request. Changing the
+request type can reset that cursor to today. The integration therefore reads
+configuration first, then traverses combined `GetGraph` records serially under
+a shared gate with climate polls and existing convector commands. This usually
+needs seven graph requests instead of fourteen separate energy/temperature
+requests. Configuration is not repeated inside a graph traversal.
 
-Only `GetStatus`, `GetParams`, `GetPowerMode`, `GetEnergyStatistic` and
-`GetTemperatureStatistic` are accepted by the telemetry reader. No power,
-programme, tariff, setpoint or reset commands are added. Regulation is displayed
-as a status, not a selectable watt limit. Credentials and pairing tokens are
-not exposed in entity attributes or telemetry error messages.
+Responses are deduplicated by date. A traversal attempts at most fourteen reads,
+with a 45-second time limit, to recover dates repeated after interference from
+another client. Coverage is explicit: fewer dates remain fewer dates, not zero
+consumption. Confirmed dates survive a later history read failure. Unsupported
+combined graphs (HTTP 400/404 or an unsupported response) fall back to contiguous
+energy and temperature traversals. Other network failures are not blindly
+retried as a different protocol.
 
-The sensor becomes unavailable on a failed read or after 30 minutes without a
-fresh snapshot. At midnight, yesterday's total does not become today's zero.
+The auxiliary reader accepts only the reviewed status, configuration and history
+requests. No control, reset, firmware, discovery or pairing requests are added.
+Regulation is configuration, not a live watt limit. Credentials and pairing IDs
+never appear in entity attributes or error messages. See the
+[configuration entity list](iot-convector-features.md) for optional fields.
+
+The energy sensor becomes unavailable when today's total is missing or after
+30 minutes without a fresh snapshot. Configuration can remain available after a
+history-only failure. At midnight, yesterday's total does not become today's zero.
 Removing the config entry cancels telemetry and closes its resources.
 
 ## Offline tests
@@ -100,3 +115,5 @@ validation, background setup/unload, programme modes and transport recovery.
 
 This integration supplies reusable sensor data. Custom household dashboards,
 entity IDs, authentication material and deployment backups are outside its scope.
+
+The read-only extension was validated with 58 offline tests in the HA runtime.

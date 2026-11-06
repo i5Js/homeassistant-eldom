@@ -1,0 +1,71 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "child_lock": {
+        "name": "Bloqueo infantil habilitado"
+      },
+      "antifreeze": {
+        "name": "Protección antihielo habilitada"
+      },
+      "sleep": {
+        "name": "Modo sueño habilitado"
+      },
+      "power_regulation": {
+        "name": "Regulación de potencia habilitada"
+      },
+      "adaptive_display": {
+        "name": "Atenuación automática de pantalla habilitada"
+      },
+      "wifi_enabled": {
+        "name": "Modo Wi-Fi habilitado"
+      },
+      "ap_enabled": {
+        "name": "Modo punto de acceso habilitado"
+      },
+      "automatic_clock": {
+        "name": "Sincronización automática de hora habilitada"
+      }
+    },
+    "sensor": {
+      "schedule_enabled_intervals": {
+        "name": "Intervalos habilitados del programa semanal"
+      },
+      "open_window_mode": {
+        "name": "Modo de detección de ventana abierta",
+        "state": {
+          "off": "Apagado",
+          "on": "Encendido",
+          "smart": "Inteligente"
+        }
+      },
+      "display_brightness": {
+        "name": "Nivel de brillo de pantalla"
+      },
+      "language": {
+        "name": "Idioma de pantalla"
+      },
+      "firmware_version": {
+        "name": "Versión del firmware"
+      },
+      "hardware_version": {
+        "name": "Versión del hardware"
+      },
+      "day_tariff_start": {
+        "name": "Inicio de tarifa diurna"
+      },
+      "night_tariff_start": {
+        "name": "Inicio de tarifa nocturna"
+      },
+      "scheduler_type": {
+        "name": "Configuración del programador",
+        "state": {
+          "timer": "Temporizador",
+          "weekly_program": "Programa semanal"
+        }
+      },
+      "estimate_reference_power": {
+        "name": "Potencia de referencia del consumo estimado"
+      }
+    }
+  }
+}

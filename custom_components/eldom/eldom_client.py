@@ -1,5 +1,7 @@
 """A wrapper Eldom client uses whichever of the two clients is authenticaed."""
 
+import asyncio
+
 import aiohttp
 from eldom.client import Client as EldomClient
 from ioteldom.client import Client as IoTEldomClient
@@ -27,11 +29,13 @@ class EldomClientWrapper:
         username: str,
         password: str,
         api: str,
+        operation_lock: asyncio.Lock | None = None,
     ) -> None:
         """Creates a wrapper Eldom client that operates based on which API is chosen."""
         self.username = username
         self.password = password
         self.api = api
+        self.operation_lock = operation_lock or asyncio.Lock()
 
         self.eldom_client = EldomClient(session)
         self.iot_eldom_client = IoTEldomClient(session, username, password)
@@ -140,6 +144,7 @@ class EldomClientWrapper:
                     device
                 ),
                 self.iot_eldom_client,
+                self.operation_lock,
             )
             for device in devices
             if device.model == DEVICE_TYPE_CONVECTOR_HEATER_IOT_ELDOM

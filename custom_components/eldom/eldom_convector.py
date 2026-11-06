@@ -1,5 +1,6 @@
 """Eldom convector heater objects."""
 
+import asyncio
 import logging
 
 from eldom.client import Client as EldomClient
@@ -166,11 +167,13 @@ class IoTEldomConvectorHeater:
         device: IoTEldomConvectorHeaterDevice,
         convector_heater_details: IoTEldomConvectorHeaterDetails,
         iot_eldom_client: IoTEldomClient,
+        operation_lock: asyncio.Lock | None = None,
     ) -> None:
         """Initialize the heater."""
         self._convector_heater_device = device
         self._convector_heater_details = convector_heater_details
         self._iot_eldom_client = iot_eldom_client
+        self._operation_lock = operation_lock or asyncio.Lock()
 
     @property
     def id(self) -> int:
@@ -271,16 +274,16 @@ class IoTEldomConvectorHeater:
             operation_mode
         ]
 
-        self._convector_heater_details.Operation = operation_mode_id
-
-        await self._iot_eldom_client.convector_heater.set_convector_heater_state(
-            self._convector_heater_device, int(operation_mode_id)
-        )
+        async with self._operation_lock:
+            await self._iot_eldom_client.convector_heater.set_convector_heater_state(
+                self._convector_heater_device, int(operation_mode_id)
+            )
+            self._convector_heater_details.Operation = operation_mode_id
 
     async def set_temperature(self, temperature: float) -> None:
         """Set the temperature of the heater."""
-        self._convector_heater_details.TSet = str(int(temperature) * 10)
-
-        await self._iot_eldom_client.convector_heater.set_convector_heater_temperature(
-            self._convector_heater_device, int(temperature)
-        )
+        async with self._operation_lock:
+            await self._iot_eldom_client.convector_heater.set_convector_heater_temperature(
+                self._convector_heater_device, int(temperature)
+            )
+            self._convector_heater_details.TSet = str(int(temperature) * 10)

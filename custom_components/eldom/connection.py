@@ -27,6 +27,11 @@ class EldomConnection:
         self._lock = asyncio.Lock()
         self._closed = False
 
+    @property
+    def operation_lock(self) -> asyncio.Lock:
+        """Serialize status polls, history transactions and existing commands."""
+        return self._lock
+
     async def _async_client(self) -> EldomClientWrapper:
         if self._client is None:
             # Do not use HA's shared connector/resolver: a stuck DNS lookup in
@@ -40,7 +45,7 @@ class EldomConnection:
                 timeout=REQUEST_TIMEOUT,
             )
             self._client = EldomClientWrapper(
-                self._session, self._username, self._password, self._api
+                self._session, self._username, self._password, self._api, self._lock
             )
             if self._api == IOT_ELDOM_API:
                 self._client.iot_eldom_client.token_provider.token = self._token

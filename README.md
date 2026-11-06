@@ -123,6 +123,11 @@ Devices managed via the `Eldom` app (or the `iot.myeldom.com` website) — see t
 - Available hourly electricity and temperature histories, up to seven days
 - Read-only power regulation status and the reference power used for estimates
 - Separate background telemetry polling and isolated cloud reconnection
+- Read-only weekly schedule, protection, display, language and diagnostic entities
+- Combined hourly graphs with serialized cursor traversal and explicit coverage
+
+See [IoT convector configuration readings](docs/iot-convector-features.md) for
+the 18 new entities, diagnostics disabled by default and read-only limitations.
 
 The hourly values reproduce the official app's calculation; they are not an
 independent electricity-meter measurement or instantaneous watts. Missing data
