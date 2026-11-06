@@ -40,6 +40,12 @@ also make the count unavailable. Incomplete fields remain null.
 
 ## Availability and updates
 
+Climate and auxiliary reads each own an asynchronous DNS channel and close it
+with their HTTP session. Explicit resolver options avoid aiohttp's shared
+resolver manager and the event loop's threaded DNS executor, so a stalled
+lookup there does not prevent a new Eldom connection. System DNS servers are
+retained; no vendor IP address or public DNS server is hardcoded.
+
 Configuration and history share the auxiliary 15-minute background coordinator.
 There is no separate request per entity. Configuration requests are individually
 serialized with climate polls and existing controls. A history traversal holds

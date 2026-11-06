@@ -1,6 +1,7 @@
 """An entry-owned transport that can recover without restarting Home Assistant."""
 
 import asyncio
+from contextlib import AsyncExitStack
 
 import aiohttp
 from eldom.client import InvalidCredentialsError as EldomInvalidCredentialsError
@@ -22,6 +23,7 @@ class EldomConnection:
         self._password = password
         self._api = api
         self._session: aiohttp.ClientSession | None = None
+        self._transport: AsyncExitStack | None = None
         self._client: EldomClientWrapper | None = None
         self._token: str | None = None
         self._lock = asyncio.Lock()
@@ -34,16 +36,20 @@ class EldomConnection:
 
     async def _async_client(self) -> EldomClientWrapper:
         if self._client is None:
-            # Do not use HA's shared connector/resolver: a stuck DNS lookup in
-            # that pool survives config-entry reloads. Only close our own pool.
-            self._session = aiohttp.ClientSession(
+            # Explicit options give AsyncResolver its own aiodns channel.
+            # A default AsyncResolver shares a channel; ThreadedResolver still
+            # depends on the event loop's executor. Neither isolates DNS here.
+            self._transport = AsyncExitStack()
+            resolver = aiohttp.AsyncResolver(timeout=2, tries=2)
+            self._transport.push_async_callback(resolver.close)
+            self._session = await self._transport.enter_async_context(aiohttp.ClientSession(
                 connector=aiohttp.TCPConnector(
-                    resolver=aiohttp.ThreadedResolver(),
+                    resolver=resolver,
                     limit=10,
                     limit_per_host=4,
                 ),
                 timeout=REQUEST_TIMEOUT,
-            )
+            ))
             self._client = EldomClientWrapper(
                 self._session, self._username, self._password, self._api, self._lock
             )
@@ -57,10 +63,11 @@ class EldomConnection:
             self._token = self._client.iot_eldom_client.token_provider.token
         if reset_auth:
             self._token = None
-        session, self._session = self._session, None
+        transport, self._transport = self._transport, None
+        self._session = None
         self._client = None
-        if session is not None:
-            await session.close()
+        if transport is not None:
+            await transport.aclose()
 
     async def get_devices(self) -> dict:
         """Bound the whole read, rotating a failed transport for the next poll.

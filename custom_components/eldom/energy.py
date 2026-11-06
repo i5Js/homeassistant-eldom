@@ -5,6 +5,7 @@ The vendor returns 24 bins per calendar date, not UTC instants. Do not invent
 """
 
 import asyncio
+from contextlib import AsyncExitStack
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 import logging
@@ -214,8 +215,13 @@ class EldomEnergyCoordinator(DataUpdateCoordinator):
         try:
             # Bound the background refresh, including optional feature probes.
             async with asyncio.timeout(90):
-                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15, connect=5),
-                                                  connector=aiohttp.TCPConnector(resolver=aiohttp.ThreadedResolver(), limit_per_host=1)) as session:
+                async with AsyncExitStack() as transport:
+                    # Non-default options avoid aiohttp's shared DNS channel.
+                    resolver = aiohttp.AsyncResolver(timeout=2, tries=2)
+                    transport.push_async_callback(resolver.close)
+                    session = await transport.enter_async_context(aiohttp.ClientSession(
+                        timeout=aiohttp.ClientTimeout(total=15, connect=5),
+                        connector=aiohttp.TCPConnector(resolver=resolver, limit_per_host=1)))
                     client = Client(session, self._username, self._password)
                     # Authenticate once before the serial request groups.
                     await client.token_provider.provide()

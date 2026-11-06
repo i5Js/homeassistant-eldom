@@ -1,6 +1,6 @@
 """Offline failures against the real HA/aiohttp runtime; no device commands.
 
-Run inside the HA image: python -B -m unittest discover -s tests -v
+Run inside the HA image: python -B -m unittest discover -s tests/eldom -v
 """
 
 import asyncio
@@ -82,11 +82,31 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
     async def test_private_resolver_and_reuse(self):
         await self.connection.get_devices()
         session = self.clients[0].session
-        self.assertIsInstance(session.connector._resolver, aiohttp.ThreadedResolver)
+        self.assertIsInstance(session.connector._resolver, aiohttp.AsyncResolver)
+        self.assertIsNone(session.connector._resolver._manager)
         self.assertEqual(session.timeout.total, 15)
         await self.connection.get_devices()
         self.assertEqual(len(self.clients), 1)
         self.assertFalse(session.closed)
+
+    async def test_loop_dns_failure_does_not_block_private_dns(self):
+        """A broken loop resolver must not prevent a fresh localhost lookup."""
+        with patch.object(asyncio.get_running_loop(), "getaddrinfo", AsyncMock(side_effect=TimeoutError)) as shared:
+            self.assertEqual((await self.connection.get_devices())["temperature"], 16.1)
+        shared.assert_not_called()
+
+    async def test_owned_dns_channel_closes_on_rotation_and_unload(self):
+        await self.connection.get_devices()
+        resolver = self.clients[0].session.connector._resolver
+        self.outcomes.append(504)
+        with self.assertRaises(aiohttp.ClientResponseError):
+            await self.connection.get_devices()
+        self.assertIsNone(resolver._resolver)
+        await self.connection.get_devices()
+        replacement = self.clients[-1].session.connector._resolver
+        self.assertIsNot(replacement, resolver)
+        await self.connection.async_close()
+        self.assertIsNone(replacement._resolver)
 
     async def test_gateway_failure_rotates_transport_preserving_token(self):
         await self.connection.get_devices()

@@ -182,6 +182,21 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
                     await self.coordinator._async_update_data()
             self.assertEqual(str(caught.exception), "Eldom rejected authentication")
 
+    async def test_auxiliary_dns_is_private_and_closed_after_auth_failure(self):
+        resolvers = []
+        real_resolver = aiohttp.AsyncResolver
+        def resolver(*args, **kwargs):
+            result = real_resolver(*args, **kwargs)
+            self.assertIsNone(result._manager)
+            resolvers.append(result)
+            return result
+        with patch("custom_components.eldom.energy.aiohttp.AsyncResolver", side_effect=resolver), patch("custom_components.eldom.energy.Client") as client:
+            client.return_value.token_provider.provide = AsyncMock(side_effect=energy.InvalidCredentialsError())
+            with self.assertRaises(ConfigEntryAuthFailed):
+                await self.coordinator._async_update_data()
+        self.assertEqual(len(resolvers), 1)
+        self.assertIsNone(resolvers[0]._resolver)
+
     async def test_shutdown_cancels_initial_background_work(self):
         self.coordinator._task=asyncio.create_task(asyncio.Event().wait())
         await self.coordinator.async_shutdown()
