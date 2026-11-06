@@ -115,10 +115,10 @@ class EldomConvectorHeater:
         return self._convector_heater_details.EnergyN
 
     @property
-    def current_operation(self) -> HVACMode:
+    def current_operation(self) -> HVACMode | None:
         """Return current operation ie. Off or Heat."""
         return ELDOM_OPERATION_MODES.get(
-            self._convector_heater_details.State, "Unknown"
+            self._convector_heater_details.State
         )
 
     @property

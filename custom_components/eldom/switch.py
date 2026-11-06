@@ -31,8 +31,6 @@ async def async_setup_entry(
 
     eldom_data: EldomData = hass.data[DOMAIN][config_entry.entry_id]
 
-    await eldom_data.coordinator.async_config_entry_first_refresh()
-
     async_add_entities(
         EldomBoilerPowerfulModeSwitch(flat_boiler, eldom_data.coordinator)
         for flat_boiler in eldom_data.coordinator.data.get(

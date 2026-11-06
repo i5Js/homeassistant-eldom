@@ -45,8 +45,6 @@ async def async_setup_entry(
 
     eldom_data: EldomData = hass.data[DOMAIN][entry.entry_id]
 
-    await eldom_data.coordinator.async_config_entry_first_refresh()
-
     async_add_entities(
         EldomConvectorHeaterEntity(convector_heater, eldom_data.coordinator)
         for convector_heater in eldom_data.coordinator.data.get(

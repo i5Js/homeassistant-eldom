@@ -115,8 +115,19 @@ Devices managed via the `Eldom` app (or the `iot.myeldom.com` website) — see t
 - Operational mode selection
   - `Heat`
   - `Off`
+  - `Auto` while an existing weekly programme or timer is active
 - Set target temperature
 - Display current temperature
+
+- Estimated electricity today (kWh), explicitly labelled as an Eldom estimate
+- Available hourly electricity and temperature histories, up to seven days
+- Read-only power regulation status and the reference power used for estimates
+- Separate background telemetry polling and isolated cloud reconnection
+
+The hourly values reproduce the official app's calculation; they are not an
+independent electricity-meter measurement or instantaneous watts. Missing data
+remains unavailable. See [IoT convector telemetry](docs/iot-convector-telemetry.md)
+for the attribute schema, polling behaviour, limitations and offline tests.
 
 ### Showcase
 

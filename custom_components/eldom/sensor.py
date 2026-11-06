@@ -22,6 +22,8 @@ from .const import (
 from .coordinator import EldomCoordinator
 from .eldom_boiler import EldomBoiler, FlatEldomBoiler, FlatIoTEldomBoiler
 from .models import EldomData
+from .energy import number
+from homeassistant.util import dt as dt_util
 
 HEATER_STATE_ON = "On"
 HEATER_STATE_OFF = "Off"
@@ -35,8 +37,6 @@ async def async_setup_entry(
     """Set up Eldom sensor platform."""
 
     eldom_data: EldomData = hass.data[DOMAIN][config_entry.entry_id]
-
-    await eldom_data.coordinator.async_config_entry_first_refresh()
 
     entities_to_add = []
 
@@ -147,7 +147,47 @@ async def async_setup_entry(
             IoTFlatBoilerChamber2TempSensor(iot_flat_boiler, eldom_data.coordinator)
         )
 
+    if eldom_data.energy_coordinator:
+        for heater in eldom_data.coordinator.data.get("HTRCNV", {}).values():
+            entities_to_add.append(EldomConvectorEstimatedEnergySensor(heater, eldom_data.energy_coordinator))
+
     async_add_entities(entities_to_add)
+
+
+class EldomConvectorEstimatedEnergySensor(CoordinatorEntity, SensorEntity):
+    """Daily app estimate and its original hourly graph, without invented W."""
+
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_suggested_display_precision = 2
+    _attr_icon = "mdi:radiator"
+    # No state_class: daily app estimates are not a verified lifetime meter.
+
+    def __init__(self, heater, coordinator):
+        super().__init__(coordinator)
+        self._device_id = heater.device_id
+        self._attr_unique_id = f"{heater.device_id}-estimated-energy-today"
+        self._attr_name = f"{heater.name} Estimated Energy Today"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, heater.device_id)})
+
+    @property
+    def snapshot(self):
+        return self.coordinator.data.get(self._device_id, {})
+
+    @property
+    def available(self):
+        stamp = dt_util.parse_datetime(self.snapshot.get("retrieved_at", ""))
+        return bool(super().available and stamp and stamp.tzinfo and 0 <= (dt_util.utcnow() - stamp).total_seconds() < 1800)
+
+    @property
+    def native_value(self):
+        today = dt_util.now().date().isoformat()
+        row = next((row for row in self.snapshot.get("energy", []) if row["date"] == today), {})
+        return number(row.get("total"), nonnegative=True)
+
+    @property
+    def extra_state_attributes(self):
+        return {key: value for key, value in self.snapshot.items() if key != "today"}
 
 
 class EldomBoilerDayEnergyConsumptionSensor(SensorEntity, CoordinatorEntity):

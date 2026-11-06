@@ -29,8 +29,6 @@ async def async_setup_entry(
 
     eldom_data: EldomData = hass.data[DOMAIN][config_entry.entry_id]
 
-    await eldom_data.coordinator.async_config_entry_first_refresh()
-
     entities_to_add = []
 
     for flat_boiler in eldom_data.coordinator.data.get(
